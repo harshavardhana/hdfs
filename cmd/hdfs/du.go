@@ -7,7 +7,7 @@ import (
 	"path"
 	"text/tabwriter"
 
-	"github.com/colinmarc/hdfs/v2"
+	"github.com/minio/hdfs/v3"
 )
 
 func du(args []string, summarize, humanReadable bool) {

@@ -3,7 +3,7 @@ package hdfs
 import (
 	"os"
 
-	hdfs "github.com/colinmarc/hdfs/v2/internal/protocol/hadoop_hdfs"
+	hdfs "github.com/minio/hdfs/v3/internal/protocol/hadoop_hdfs"
 	"github.com/gogo/protobuf/proto"
 )
 

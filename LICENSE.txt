@@ -1,3 +1,5 @@
+Copyright (c) 2019 Minio, Inc (dev@min.io)
+
 Copyright (c) 2014 Colin Marc (colinmarc@gmail.com)
 
 MIT License
