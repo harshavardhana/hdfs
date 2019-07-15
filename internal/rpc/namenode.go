@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	hadoop "github.com/minio/hdfs/v3/internal/protocol/hadoop_common"
 	"github.com/golang/protobuf/proto"
-	krb "gopkg.in/jcmturner/gokrb5.v5/client"
+	krb "github.com/minio/gokrb5/v7/client"
+	hadoop "github.com/minio/hdfs/v3/internal/protocol/hadoop_common"
 )
 
 const (
@@ -91,8 +91,8 @@ func NewNamenodeConnection(options NamenodeConnectionOptions) (*NamenodeConnecti
 	if user == "" {
 		if options.KerberosClient != nil {
 			creds := options.KerberosClient.Credentials
-			user = creds.Username
-			realm = creds.Realm
+			user = creds.UserName()
+			realm = creds.Realm()
 		} else {
 			return nil, errors.New("user not specified")
 		}
@@ -100,10 +100,10 @@ func NewNamenodeConnection(options NamenodeConnectionOptions) (*NamenodeConnecti
 
 	// The ClientID is reused here both in the RPC headers (which requires a
 	// "globally unique" ID) and as the "client name" in various requests.
-	clientId := newClientID()
+	clientID := newClientID()
 	c := &NamenodeConnection{
-		ClientID:   clientId,
-		ClientName: "go-hdfs-" + string(clientId),
+		ClientID:   clientID,
+		ClientName: "go-hdfs-" + string(clientID),
 		User:       user,
 
 		kerberosClient:               options.KerberosClient,

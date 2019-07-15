@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	krb "github.com/minio/gokrb5/v7/client"
+	"github.com/minio/gokrb5/v7/config"
+	"github.com/minio/gokrb5/v7/credentials"
 	"github.com/minio/hdfs/v3/hadoopconf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	krb "gopkg.in/jcmturner/gokrb5.v5/client"
-	"gopkg.in/jcmturner/gokrb5.v5/config"
-	"gopkg.in/jcmturner/gokrb5.v5/credentials"
 )
 
 var cachedClients = make(map[string]*Client)
@@ -75,12 +75,11 @@ func getKerberosClient(t *testing.T, username string) *krb.Client {
 		t.Skipf("Couldn't load keytab for user %s: %s", username, err)
 	}
 
-	client, err := krb.NewClientFromCCache(ccache)
+	client, err := krb.NewClientFromCCache(ccache, cfg)
 	if err != nil {
 		t.Fatal("Couldn't initialize krb client:", err)
 	}
-
-	return client.WithConfig(cfg)
+	return client
 }
 
 func touch(t *testing.T, path string) {

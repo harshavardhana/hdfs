@@ -6,13 +6,14 @@ import (
 	"net"
 	"regexp"
 
+	"github.com/minio/gokrb5/v7/gssapi"
+	"github.com/minio/gokrb5/v7/iana/keyusage"
+	"github.com/minio/gokrb5/v7/spnego"
+	krbtypes "github.com/minio/gokrb5/v7/types"
 	hadoop "github.com/minio/hdfs/v3/internal/protocol/hadoop_common"
-	"gopkg.in/jcmturner/gokrb5.v5/gssapi"
-	"gopkg.in/jcmturner/gokrb5.v5/iana/keyusage"
-	krbtypes "gopkg.in/jcmturner/gokrb5.v5/types"
 )
 
-const saslRpcCallId = -33
+const saslRPCCallID = -33
 
 var (
 	errKerberosNotSupported = errors.New("kerberos authentication not supported by namenode")
@@ -21,7 +22,7 @@ var (
 
 func (c *NamenodeConnection) doKerberosHandshake() error {
 	// All SASL requests/responses use this sequence number.
-	c.currentRequestID = saslRpcCallId
+	c.currentRequestID = saslRPCCallID
 
 	// Start negotiation, and get the list of supported mechanisms in reply.
 	c.writeSaslRequest(&hadoop.RpcSaslProto{State: hadoop.RpcSaslProto_NEGOTIATE.Enum()})
@@ -49,7 +50,7 @@ func (c *NamenodeConnection) doKerberosHandshake() error {
 
 	err = c.writeSaslRequest(&hadoop.RpcSaslProto{
 		State: hadoop.RpcSaslProto_INITIATE.Enum(),
-		Token: token.MechToken,
+		Token: token.MechTokenBytes,
 		Auths: []*hadoop.RpcSaslProto_SaslAuth{mechanism},
 	})
 
@@ -69,7 +70,7 @@ func (c *NamenodeConnection) doKerberosHandshake() error {
 		return err
 	}
 
-	_, err = nnToken.VerifyCheckSum(sessionKey, keyusage.GSSAPI_ACCEPTOR_SEAL)
+	_, err = nnToken.Verify(sessionKey, keyusage.GSSAPI_ACCEPTOR_SEAL)
 	if err != nil {
 		return fmt.Errorf("invalid server token: %s", err)
 	}
@@ -77,7 +78,7 @@ func (c *NamenodeConnection) doKerberosHandshake() error {
 	// Sign the payload and send it back to the namenode.
 	// TODO: Make sure we can support what is required based on what's in the
 	// payload.
-	signed, err := gssapi.NewInitiatorToken(nnToken.Payload, sessionKey)
+	signed, err := gssapi.NewInitiatorMICToken(nnToken.Payload, sessionKey)
 	if err != nil {
 		return err
 	}
@@ -102,7 +103,7 @@ func (c *NamenodeConnection) doKerberosHandshake() error {
 }
 
 func (c *NamenodeConnection) writeSaslRequest(req *hadoop.RpcSaslProto) error {
-	packet, err := makeRPCPacket(newRPCRequestHeader(saslRpcCallId, c.ClientID), req)
+	packet, err := makeRPCPacket(newRPCRequestHeader(saslRPCCallID, c.ClientID), req)
 	if err != nil {
 		return err
 	}
@@ -125,16 +126,16 @@ func (c *NamenodeConnection) readSaslResponse(expectedState hadoop.RpcSaslProto_
 
 // getKerberosTicket returns an initial kerberos negotiation token and the
 // paired session key, along with an error if any occured.
-func (c *NamenodeConnection) getKerberosTicket() (gssapi.NegTokenInit, krbtypes.EncryptionKey, error) {
+func (c *NamenodeConnection) getKerberosTicket() (spnego.NegTokenInit, krbtypes.EncryptionKey, error) {
 	host, _, _ := net.SplitHostPort(c.host.address)
 	spn := replaceSPNHostWildcard(c.kerberosServicePrincipleName, host)
 
 	ticket, key, err := c.kerberosClient.GetServiceTicket(spn)
 	if err != nil {
-		return gssapi.NegTokenInit{}, key, err
+		return spnego.NegTokenInit{}, key, err
 	}
 
-	token, err := gssapi.NewNegTokenInitKrb5(*c.kerberosClient.Credentials, ticket, key)
+	token, err := spnego.NewNegTokenInitKRB5(c.kerberosClient, ticket, key)
 	return token, key, err
 }
 

@@ -10,10 +10,10 @@ import (
 	"os/user"
 	"strings"
 
+	krb "github.com/minio/gokrb5/v7/client"
 	"github.com/minio/hdfs/v3/hadoopconf"
 	hdfs "github.com/minio/hdfs/v3/internal/protocol/hadoop_hdfs"
 	"github.com/minio/hdfs/v3/internal/rpc"
-	krb "gopkg.in/jcmturner/gokrb5.v5/client"
 )
 
 // A Client represents a connection to an HDFS cluster
